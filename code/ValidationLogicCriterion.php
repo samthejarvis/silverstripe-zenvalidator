@@ -1,5 +1,10 @@
 <?php
 
+
+
+use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
+
 /**
  * @package ZenValidator
  * @license BSD License http://www.silverstripe.org/bsd-license
@@ -10,6 +15,8 @@
 class ValidationLogicCriterion
 {
 
+    use Configurable;
+    use Injectable;
 
     /**
      * The name of the form field that is controlling the Validation
@@ -56,7 +63,6 @@ class ValidationLogicCriterion
      */
     public function __construct($master, $operator, $value, ValidationLogicCriteria $set)
     {
-        parent::__construct();
         $this->master = $master;
         $this->operator = $operator;
         $this->value = $value;
@@ -79,7 +85,7 @@ class ValidationLogicCriterion
 
     public function phpOperator()
     {
-        $operators = Config::inst()->get('ValidationLogicCriteria', 'comparisons');
+        $operators = \SilverStripe\Core\Config\Config::inst()->get('ValidationLogicCriteria', 'comparisons');
         if (isset($operators[$this->operator])) {
             return $operators[$this->operator];
         } else {
@@ -98,6 +104,7 @@ class ValidationLogicCriterion
         $value1 = '$fields->dataFieldByName(\'' . $this->master . '\')->dataValue()';
         $value2 = $this->value;
 
+
         if ($operator = $this->phpOperator()) {
             return $value1 . " {$operator} \"$value2\"";
         }
@@ -113,7 +120,7 @@ class ValidationLogicCriterion
                 return $value1 . '==""';
 
             case 'hasCheckedOption':
-                return 'strpos(' . $value1 . '' . ", \"$value2\") !== false";
+                return 'in_array("'.$value2.'", '.$value1.') !== false';
 
             case 'hasCheckedAtLeast':
                 return 'substr_count('.$value1.',",") >= ' . $value2;

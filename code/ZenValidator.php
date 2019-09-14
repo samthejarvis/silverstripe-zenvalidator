@@ -108,21 +108,19 @@ class ZenValidator extends Validator
     {
         $this->parsleyEnabled = true;
 
-        $useCurrent = self::config()->use_current;
-
         // Include your own version of jQuery (>= 1.8) and entwine
         // You can also simply call globalRequirements()
-        Requirements::javascript('zenvalidator/javascript/parsley-2.8.1/parsley.min.js', ['defer' => true]);
+        Requirements::javascript('zenvalidator/javascript/parsley-2.8.1/parsley.min.js');
 
         $lang = strtolower(substr(i18n::get_locale(), 0, 2));
         if ($lang != 'en') {
-            Requirements::javascript('zenvalidator/javascript/parsley-2.8.1/i18n/' . $lang . '.js', ['defer' => true]);
+            Requirements::javascript('zenvalidator/javascript/parsley-2.8.1/i18n/' . $lang . '.js');
         }
 
         if ($this->form) {
             if ($this->defaultJS) {
                 $this->form->addExtraClass('parsley');
-                Requirements::javascript('zenvalidator/javascript/zenvalidator.js', ['defer' => true]);
+                Requirements::javascript('zenvalidator/javascript/zenvalidator.js');
             } else {
                 $this->form->addExtraClass('custom-parsley');
             }

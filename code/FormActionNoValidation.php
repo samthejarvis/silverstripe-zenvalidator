@@ -25,7 +25,7 @@ class FormActionNoValidation extends FormAction
      */
     public function Field($properties = array())
     {
-        Requirements::customScript(
+        \SilverStripe\View\Requirements::customScript(
             "jQuery('#".$this->ID()."').click(function() { jQuery(this).parents('form').parsley().destroy();})"
         );
 

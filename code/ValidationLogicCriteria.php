@@ -8,7 +8,7 @@ use SilverStripe\Core\Injector\Injectable;
  * @author <shea@silverstripe.com.au>
  * Credit to Uncle Cheese for the recipe
  */
-class ValidationLogicCriteria
+class ValidationLogicCriteria extends \SilverStripe\View\ViewableData
 {
     use Configurable;
     use Injectable;
@@ -59,9 +59,8 @@ class ValidationLogicCriteria
      * @param [type]    $master The name of the form field to respond to
      * @param [type]    $parent The parent {@link ValidationLogicCriteria}
      */
-    public function __construct(FormField $slave, $master, $parent = null)
+    public function __construct($slave, $master, $parent = null)
     {
-        parent::__construct();
         $this->slave = $slave;
         $this->master = $master;
         $this->parent = $parent;
@@ -145,7 +144,7 @@ class ValidationLogicCriteria
      *
      * @param ValidationLogicCriterion $c
      */
-    public function addCriterion(ValidationLogicCriterion $c)
+    public function addCriterion($c)
     {
         $this->criteria[] = $c;
     }
@@ -189,6 +188,7 @@ class ValidationLogicCriteria
     {
         if ($this->parent) {
             $this->parent->addCriterion($this);
+            return $this->parent;
         }
         return $this->slave;
     }
@@ -201,12 +201,18 @@ class ValidationLogicCriteria
         $string = "(";
         $first = true;
         foreach ($this->getCriteria() as $c) {
+
             $string .= $first ? "" :  " {$this->getLogicalOperator()} ";
             $string .= $c->toPHP();
             $first = false;
         }
-        $string .= ");";
+        $string .= ")";
+
         return $string;
+    }
+
+    public function toPHP() {
+        return $this->phpEvalString();
     }
 
     /**
@@ -242,6 +248,7 @@ class ValidationLogicCriteria
                 $list[] = $c->getMaster();
             }
         }
+
         return $list;
     }
 }

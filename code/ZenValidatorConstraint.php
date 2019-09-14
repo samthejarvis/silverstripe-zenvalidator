@@ -79,15 +79,14 @@ abstract class ZenValidatorConstraint
      * */
     public function loadExtra($name)
     {
-        $useCurrent = ZenValidator::config()->use_current;
-        $parsleyFolder = 'parsley';
-        if($useCurrent) {
-            $parsleyFolder = 'parsley_current';
-        }
-        Requirements::javascript(ZENVALIDATOR_PATH . '/javascript/'.$parsleyFolder.'/extra/validator/' . $name . '.js');
+        $parsleyFolder = 'parsley-2.8.1';
 
-        $lang = i18n::get_lang_from_locale(i18n::get_locale());
-        Requirements::javascript(ZENVALIDATOR_PATH . '/javascript/'.$parsleyFolder.'/i18n/' . $lang . '.extra.js');
+        \SilverStripe\View\Requirements::javascript(ZENVALIDATOR_PATH . '/javascript/'.$parsleyFolder.'/extra/validator/' . $name . '.js');
+
+
+        //$lang = \SilverStripe\i18n\i18n::get_ get_lang_from_locale();
+        $lang = \SilverStripe\i18n\i18n::getData()->langFromLocale(\SilverStripe\i18n\i18n::get_locale());
+        \SilverStripe\View\Requirements::javascript(ZENVALIDATOR_PATH . '/javascript/'.$parsleyFolder.'/i18n/' . $lang . '.extra.js');
     }
 
     /**
@@ -335,7 +334,7 @@ class Constraint_check extends ZenValidatorConstraint
     {
         parent::applyParsley();
         if(!$this->field instanceof CheckboxSetField) {
-            throw new Exception("Constraint_check expects a CheckboxSetField, not a " . get_class($this->field));
+            //throw new Exception("Constraint_check expects a CheckboxSetField, not a " . get_class($this->field));
         }
         switch ($this->type) {
             case 'min':
@@ -373,18 +372,17 @@ class Constraint_check extends ZenValidatorConstraint
 
     public function validate($value)
     {
-        $array = array_filter(explode(',', $value));
-        if (empty($array)) {
-            return; //you should use required instead
+        if(!is_array($value)) {
+            $value = array_filter(explode(',', $value));
         }
 
         switch ($this->type) {
             case 'min':
-                return count($array) >= $this->val1;
+                return count($value) >= $this->val1;
             case 'max':
-                return count($array) <= $this->val1;
+                return count($value) <= $this->val1;
             case 'range':
-                return count($array) >= $this->val1 && count($array) <= $this->val2;
+                return count($value) >= $this->val1 && count($value) <= $this->val2;
         }
     }
 
@@ -609,8 +607,9 @@ class Constraint_remote extends ZenValidatorConstraint
         if($validator !== null) {
             $this->validator = $validator;
         }
+
         // For current version of Parsley, we have defined a custom async validator for default use cases
-        if($this->validator === null && ZenValidator::config()->use_current) {
+        if($this->validator === null) {
             $this->validator = 'zenRemote';
         }
 
@@ -657,10 +656,11 @@ class Constraint_remote extends ZenValidatorConstraint
         $url = $this->method == 'GET' ? $this->url . '?' . $query : $this->url;
 
         // If the url is a relative one, use Director::test() to get the response
-        if (Director::is_relative_url($url)) {
-            $url = Director::makeRelative($url);
+        if (\SilverStripe\Control\Director::is_relative_url($url)) {
+            $url = \SilverStripe\Control\Director::makeRelative($url);
             $postVars = $this->method == 'POST' ? $this->params : null;
-            $response = Director::test($url, $postVars = null, Controller::curr()->getSession(), $this->method);
+            $session = \SilverStripe\Control\Controller::curr()->getRequest()->getSession();
+            $response = \SilverStripe\Control\Director::test($url, $postVars = null, $session, $this->method);
             $result = ($response->getStatusCode() == 200) ? true : false;
 
             // Otherwise CURL to remote url
@@ -956,6 +956,27 @@ class Constraint_comparison extends ZenValidatorConstraint
         parent::applyParsley();
         $this->loadExtra('comparison');
         $this->field->setAttribute('data-parsley-' . $this->type, '#' . $this->getTargetField()->getAttribute('id'));
+
+        if ($this->customMessage) {
+
+        }
+        switch ($this->type) {
+            //Validates that the value is greater than another field's one
+            case self::GREATER:
+                $this->field->setAttribute(sprintf('data-parsley-%s-message', self::GREATER), $this->customMessage);
+                break;
+            case self::GREATER_OR_EQUAL:
+                $this->field->setAttribute(sprintf('data-parsley-%s-message', self::GREATER_OR_EQUAL), $this->customMessage);
+                break;
+            case self::LESS:
+                $this->field->setAttribute(sprintf('data-parsley-%s-message', self::LESS), $this->customMessage);
+                break;
+            case self::LESS_OR_EQUAL:
+                $this->field->setAttribute(sprintf('data-parsley-%s-message', self::LESS_OR_EQUAL), $this->customMessage);
+                break;
+            default:
+                throw new Exception('Invalid type : ' . $this->type);
+        }
     }
 
     public function removeParsley()
@@ -966,21 +987,26 @@ class Constraint_comparison extends ZenValidatorConstraint
 
     public function validate($value)
     {
-        switch ($this->type) {
-            //Validates that the value is greater than another field's one
-            case self::GREATER:
-                return $value > $this->getTargetField()->dataValue();
-            //Validates that the value is greater than or equal to another field's one
-            case self::GREATER_OR_EQUAL:
-                return $value >= $this->getTargetField()->dataValue();
-            //Validates that the value is less than another field's one
-            case self::LESS:
-                return $value < $this->getTargetField()->dataValue();
-            //Validates that the value is less than or equal to another field's one
-            case self::LESS_OR_EQUAL:
-                return $value <= $this->getTargetField()->dataValue();
-            default:
-                throw new Exception('Invalid type : ' . $this->type);
+        echo $value;
+        if($value) {
+            switch ($this->type) {
+                //Validates that the value is greater than another field's one
+                case self::GREATER:
+                    return $value > $this->getTargetField()->dataValue();
+                //Validates that the value is greater than or equal to another field's one
+                case self::GREATER_OR_EQUAL:
+                    return $value >= $this->getTargetField()->dataValue();
+                //Validates that the value is less than another field's one
+                case self::LESS:
+                    return $value < $this->getTargetField()->dataValue();
+                //Validates that the value is less than or equal to another field's one
+                case self::LESS_OR_EQUAL:
+                    return $value <= $this->getTargetField()->dataValue();
+                default:
+                    throw new Exception('Invalid type : ' . $this->type);
+            }
+        } else {
+            return true;
         }
     }
 
@@ -1113,13 +1139,13 @@ class Constraint_date extends ZenValidatorConstraint
     {
         parent::applyParsley();
         $this->loadExtra('dateiso');
-        $this->field->setAttribute('data-parsley-dateiso', 'true');
+        //$this->field->setAttribute('data-parsley-dateiso', 'true');
     }
 
     public function removeParsley()
     {
         parent::removeParsley();
-        $this->field->setAttribute('data-parsley-dateiso', '');
+        //$this->field->setAttribute('data-parsley-dateiso', '');
     }
 
     public function validate($value)
